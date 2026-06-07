@@ -1,0 +1,23 @@
+{
+  "applicant_id": "FIRM-2024-0042",
+  "firm_name": "Meridian Financial Services Ltd",
+  "declared_activities": [
+    "payment_processing",
+    "digital_asset_custody",
+    "foreign_exchange_conversion"
+  ],
+  "documents": [
+    {
+      "type": "pdf",
+      "path": "fixtures/docs/annual_report.pdf"
+    },
+    {
+      "type": "docx",
+      "path": "fixtures/docs/governance_policy.docx"
+    },
+    {
+      "type": "xlsx",
+      "path": "fixtures/docs/risk_register.xlsx"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+services:
+
+  mock-review-api:
+    build: .
+    entrypoint: ["python", "mock_review_api.py"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output   # persist received payloads to host
+
+  pipeline:
+    build: .
+    depends_on:
+      - mock-review-api
+    env_file: .env
+    environment:
+      - REVIEW_API_URL=http://mock-review-api:8000/assessments
+    volumes:
+      - ./fixtures:/app/fixtures     # read submission + documents from host
+      - ./output:/app/output         # write results + traces to host
+    command: ["--submission", "fixtures/submission.json"]
