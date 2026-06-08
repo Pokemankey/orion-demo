@@ -29,6 +29,12 @@ class AuthorizationLevel(str, Enum):
     CONDITIONAL = "CONDITIONAL"
     DEFERRED = "DEFERRED"
     REJECTED = "REJECTED"
+    ERROR = "ERROR"  # pipeline could not produce an assessment (processing failure, not a decision)
+
+
+class RunStatus(str, Enum):
+    COMPLETE = "complete"
+    FAILED = "failed"
 
 
 # ---------------------------------------------------------------------------
@@ -99,3 +105,5 @@ class ReviewerPayload(BaseModel):
     authorization_rationale: str
     follow_up_questions: list[FollowUpQuestion]
     metadata: dict[str, Any] = Field(default_factory=dict)
+    status: RunStatus = RunStatus.COMPLETE
+    error: str | None = None  # populated only when status is FAILED

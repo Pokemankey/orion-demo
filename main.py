@@ -83,6 +83,10 @@ def run_pipeline(submission_path: str) -> None:
 
     log.info("pipeline_start", run_id=run_id, submission=submission_path)
 
+    # Tracked outside the try so a failure handler can still reference the
+    # submission if it was loaded before the error (preserves applicant identity).
+    submission = None
+
     try:
         # Stage 1 — load and validate the submission JSON
         submission = ingest.run(submission_path, run_id)
@@ -134,8 +138,15 @@ def run_pipeline(submission_path: str) -> None:
         print(f"  Trace log at:        output/traces/{run_id}.jsonl")
         print(f"{'='*60}\n")
 
-    except (FileNotFoundError, ValueError) as e:
+    except Exception as e:
+        # Any stage failing still produces a FAILED payload to the review API,
+        # so a submission never silently disappears. The failure emit is itself
+        # guarded so a problem delivering it cannot mask the original error.
         log.error("pipeline_failed", run_id=run_id, error=str(e))
+        try:
+            emit.emit_failure(run_id=run_id, error=str(e), submission=submission)
+        except Exception as emit_error:
+            log.error("emit_failure_errored", run_id=run_id, error=str(emit_error))
         print(f"\nError: {e}", file=sys.stderr)
         sys.exit(1)
 

@@ -11,6 +11,7 @@ from models import (
     DimensionScore,
     FollowUpQuestion,
     ReviewerPayload,
+    RunStatus,
     Submission,
 )
 
@@ -59,6 +60,43 @@ def run(
         composite_score=composite,
     )
 
+    return payload
+
+
+def emit_failure(
+    run_id: str,
+    error: str,
+    submission: Submission | None = None,
+) -> ReviewerPayload:
+    """
+    Emit a failure payload when the pipeline cannot complete an assessment.
+    Delivered through the same channels as a successful run (local file + review
+    API) so the reviewer always receives a result, clearly marked FAILED rather
+    than a misleadingly low risk decision. `submission` is included when it was
+    loaded before the failure, so applicant identity is preserved where possible.
+    """
+    payload = ReviewerPayload(
+        run_id=run_id,
+        applicant_id=submission.applicant_id if submission else "unknown",
+        firm_name=submission.firm_name if submission else "unknown",
+        dimension_scores=[],
+        composite_score=0.0,
+        authorization_level=AuthorizationLevel.ERROR,
+        authorization_rationale=(
+            "Pipeline failed before an assessment could be produced. "
+            "This is a processing error, not a risk decision, and the submission "
+            "must be re-run."
+        ),
+        follow_up_questions=[],
+        status=RunStatus.FAILED,
+        error=error,
+        metadata={"processed_at": datetime.now(timezone.utc).isoformat()},
+    )
+
+    _write_local(payload, run_id)
+    _post_to_api(payload, run_id)
+
+    log.info("emit_failure_complete", run_id=run_id, error=error)
     return payload
 
 
